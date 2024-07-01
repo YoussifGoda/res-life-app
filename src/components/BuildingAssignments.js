@@ -2,11 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import Modal from './Modal';
 
-function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs }) {
+function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs, updateRA }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [editRAIndex, setEditRAIndex] = useState(null);
   const [showAssignedRAs, setShowAssignedRAs] = useState({});
+  
+  // Effect to reset assigned RAs when selectedBuilding changes
+  useEffect(() => {
+    if (selectedBuilding) {
+      const resetAssignedRAs = { ...assignedRAs };
+      resetAssignedRAs[selectedBuilding.name] = [];
+      setAssignedRAs(resetAssignedRAs);
+    }
+  }, [selectedBuilding]); // Only run when selectedBuilding changes
 
   // Function to open the modal with the building and optionally RA index for editing
   const handleOpenModal = (building, raIndex = null) => {
@@ -59,14 +68,9 @@ function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs }) {
 
   // Function to handle deleting an RA from a building's list
   const handleDeleteRA = (buildingName, index) => {
-    setAssignedRAs((prevAssignedRAs) => {
-      const buildingAssignments = [...prevAssignedRAs[buildingName]];
-      buildingAssignments.splice(index, 1);
-      return {
-        ...prevAssignedRAs,
-        [buildingName]: buildingAssignments,
-      };
-    });
+    const updatedAssignedRAs = { ...assignedRAs };
+    updatedAssignedRAs[buildingName] = assignedRAs[buildingName].filter((_, i) => i !== index);
+    setAssignedRAs(updatedAssignedRAs);
   };
 
   // Function to toggle the view of assigned RAs for a building
@@ -149,7 +153,7 @@ function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs }) {
                         {ra.name} {ra.score ? `- Score: ${ra.score}` : ''}
                         <div className="ra-actions">
                           <button onClick={() => handleOpenModal(building, raIndex)}>
-                            Edit
+                            Replace
                           </button>
                           <button className="delete-button" onClick={() => handleDeleteRA(building.name, raIndex)}>
                             Delete

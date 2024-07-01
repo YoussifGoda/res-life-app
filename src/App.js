@@ -25,6 +25,11 @@ function App() {
   };
 
   const updateRA = (index, updatedRA, deleteFlag = false) => {
+    // Update RAs state
+    const updatedRAs = [...ras];
+    updatedRAs[index] = updatedRA;
+    setRAs(updatedRAs);
+  
     // Update assignedRAs with edited or deleted RA
     const updatedAssignedRAs = { ...assignedRAs };
     for (let buildingName in updatedAssignedRAs) {
@@ -35,6 +40,9 @@ function App() {
       }
     }
     setAssignedRAs(updatedAssignedRAs);
+  
+    // Pass updated RAs to BuildingAssignments
+    setRAs(updatedRAs);
   };
 
   const addBuilding = (building) => {
@@ -46,6 +54,13 @@ function App() {
       const updatedBuildings = [...prevBuildings];
       updatedBuildings[index] = updatedBuilding;
       return updatedBuildings;
+    });
+  
+    // Reset assigned RAs only for the edited building
+    setAssignedRAs((prevAssignedRAs) => {
+      const updatedAssignedRAs = { ...prevAssignedRAs };
+      updatedAssignedRAs[updatedBuilding.name] = [];
+      return updatedAssignedRAs;
     });
   };
 
