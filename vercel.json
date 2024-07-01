@@ -1,0 +1,21 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        "src": "build/**",
+        "use": "@vercel/static-build"
+      }
+    ],
+    "routes": [
+      { "handle": "filesystem" },
+      {
+        "src": "/(.*\\.(json|ico|txt|js|css|svg|png|jpg))",
+        "headers": {
+          "Cache-Control": "s-maxage=31536000,immutable"
+        },
+        "continue": true
+      },
+      { "handle": "hit" },
+      { "src": "/.*", "dest": "/index.html" }
+    ]
+  }
