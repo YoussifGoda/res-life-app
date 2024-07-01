@@ -2,59 +2,50 @@ import React, { useState, useEffect } from 'react';
 import { jsPDF } from 'jspdf';
 import Modal from './Modal';
 
-function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs, updateRA }) {
+function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [editRAIndex, setEditRAIndex] = useState(null);
   const [showAssignedRAs, setShowAssignedRAs] = useState({});
-  
-  // Effect to reset assigned RAs when selectedBuilding changes
-  useEffect(() => {
-    if (selectedBuilding) {
-      const resetAssignedRAs = { ...assignedRAs };
-      resetAssignedRAs[selectedBuilding.name] = [];
-      setAssignedRAs(resetAssignedRAs);
-    }
-  }, [selectedBuilding]); // Only run when selectedBuilding changes
 
-  // Function to open the modal with the building and optionally RA index for editing
+  // Open modal for assigning or editing RAs
   const handleOpenModal = (building, raIndex = null) => {
     setSelectedBuilding(building);
     setEditRAIndex(raIndex);
     setIsModalOpen(true);
   };
 
-  // Function to handle the saving of a new RA or editing an existing RA
+  // Handle the saving of a new or edited RA assignment
   const handleAssignRA = (inputs) => {
     const { 'RA Name': raName } = inputs;
     if (!raName) return;
 
     const [name, score] = raName.split(' - Score: ');
 
+    // Check if the RA is already assigned to another building
     const isAlreadyAssigned = Object.values(assignedRAs).some(assignments =>
       assignments.some(ra => ra.name === name)
     );
-    if (isAlreadyAssigned && (editRAIndex === null || assignedRAs[selectedBuilding.name][editRAIndex].name !== name)) {
-      alert(`RA "${name}" is already assigned to another building.`);
-      return;
-    }
 
     const assignedRAList = assignedRAs[selectedBuilding.name] || [];
+
+    // If editing an existing RA, replace it with the new details
     if (editRAIndex !== null) {
-      // Editing an existing RA
-      assignedRAList[editRAIndex] = { name, score };
-    } else {
-      // Adding a new RA
-      if (assignedRAList.some(ra => ra.name === name)) {
-        alert(`RA "${name}" is already assigned to ${selectedBuilding.name}.`);
+      if (isAlreadyAssigned && assignedRAList[editRAIndex].name !== name) {
+        alert(`RA "${name}" is already assigned to another building.`);
         return;
       }
-
+      assignedRAList[editRAIndex] = { name, score };
+    } else {
+      // If adding a new RA, ensure it's not already assigned and the limit isn't exceeded
+      if (isAlreadyAssigned) {
+        alert(`RA "${name}" is already assigned to another building.`);
+        return;
+      }
       if (assignedRAList.length >= selectedBuilding.numberOfRAs) {
         alert(`Cannot assign more than ${selectedBuilding.numberOfRAs} RAs to ${selectedBuilding.name}.`);
         return;
       }
-
       assignedRAList.push({ name, score });
     }
 
@@ -66,14 +57,14 @@ function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs, upda
     setIsModalOpen(false);
   };
 
-  // Function to handle deleting an RA from a building's list
+  // Handle the deletion of an RA from a building's assignment list
   const handleDeleteRA = (buildingName, index) => {
     const updatedAssignedRAs = { ...assignedRAs };
     updatedAssignedRAs[buildingName] = assignedRAs[buildingName].filter((_, i) => i !== index);
     setAssignedRAs(updatedAssignedRAs);
   };
 
-  // Function to toggle the view of assigned RAs for a building
+  // Toggle the display of assigned RAs for a building
   const toggleShowAssignedRAs = (buildingName) => {
     setShowAssignedRAs((prevShowAssignedRAs) => ({
       ...prevShowAssignedRAs,
@@ -81,12 +72,10 @@ function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs, upda
     }));
   };
 
-  // Function to generate a PDF of the building assignments
-  const generatePDF = async () => {
+  // Generate a PDF of the building assignments
+  const generatePDF = () => {
     try {
       const pdf = new jsPDF();
-
-      // Positioning variables
       let yOffset = 10;
       const lineHeight = 10;
 
@@ -104,7 +93,7 @@ function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs, upda
         yOffset += lineHeight;
 
         // Assigned RAs
-        assignedRAList.forEach((ra, raIndex) => {
+        assignedRAList.forEach((ra) => {
           const raText = `${ra.name} ${ra.score ? `- Score: ${ra.score}` : ''}`;
           yOffset += lineHeight;
 
@@ -113,9 +102,9 @@ function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs, upda
         });
 
         // Draw line separator
-        yOffset += lineHeight / 2; // Adjusting for line thickness
+        yOffset += lineHeight / 2;
         pdf.line(10, yOffset, 200, yOffset);
-        yOffset += lineHeight / 2; // Space after the line
+        yOffset += lineHeight / 2;
       });
 
       pdf.save('building-assignment.pdf');
@@ -143,7 +132,7 @@ function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs, upda
                 <div className="ra-info">
                   <span className="ra-counter">{assignedCount}/{totalRAs} RAs Assigned</span>
                   <button className="view-ra-button" onClick={() => toggleShowAssignedRAs(building.name)}>
-                    View RAs
+                    {showAssignedRAs[building.name] ? 'Hide RAs' : 'View RAs'}
                   </button>
                 </div>
                 {showAssignedRAs[building.name] && (
@@ -152,12 +141,8 @@ function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs, upda
                       <li key={raIndex}>
                         {ra.name} {ra.score ? `- Score: ${ra.score}` : ''}
                         <div className="ra-actions">
-                          <button onClick={() => handleOpenModal(building, raIndex)}>
-                            Replace
-                          </button>
-                          <button className="delete-button" onClick={() => handleDeleteRA(building.name, raIndex)}>
-                            Delete
-                          </button>
+                          <button onClick={() => handleOpenModal(building, raIndex)}>Replace</button>
+                          <button className="delete-button" onClick={() => handleDeleteRA(building.name, raIndex)}>Delete</button>
                         </div>
                       </li>
                     ))}
@@ -173,9 +158,13 @@ function BuildingAssignments({ buildings, ras, assignedRAs, setAssignedRAs, upda
             onClose={() => setIsModalOpen(false)}
             onSave={handleAssignRA}
             fields={['RA Name']}
-            dropdownOptions={ras.filter(ra => !Object.values(assignedRAs).some(assignments => assignments.some(assigned => assigned.name === ra.name))).map((ra) => `${ra.name}${ra.score !== undefined ? ' - Score: ' + ra.score : ''}`)}
+            dropdownOptions={ras
+              .filter(ra => !Object.values(assignedRAs).some(assignments => assignments.some(assigned => assigned.name === ra.name)))
+              .map(ra => `${ra.name}${ra.score !== undefined ? ' - Score: ' + ra.score : ''}`)}
             dropdownLabel="RA Name"
-            initialData={editRAIndex !== null ? { 'RA Name': `${assignedRAs[selectedBuilding.name][editRAIndex].name}${assignedRAs[selectedBuilding.name][editRAIndex].score ? ' - Score: ' + assignedRAs[selectedBuilding.name][editRAIndex].score : ''}` } : {}}
+            initialData={editRAIndex !== null ? {
+              'RA Name': `${assignedRAs[selectedBuilding.name][editRAIndex].name}${assignedRAs[selectedBuilding.name][editRAIndex].score ? ' - Score: ' + assignedRAs[selectedBuilding.name][editRAIndex].score : ''}`
+            } : {}}
           />
         )}
       </div>
