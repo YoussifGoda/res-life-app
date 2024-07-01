@@ -3,11 +3,11 @@ import Modal from './Modal';
 
 function BuildingList({ buildings, addBuilding, updateBuilding, deleteBuilding }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState('add'); // 'add' or 'edit'
+  const [modalType, setModalType] = useState('add');
   const [currentBuildingIndex, setCurrentBuildingIndex] = useState(null);
-  const [modalInputs, setModalInputs] = useState({}); // State to hold modal inputs
+  const [modalInputs, setModalInputs] = useState({});
 
-  // Function to handle opening the modal for adding or editing a building
+  // Function to open the modal for adding or editing a building
   const handleOpenModal = (type, index = null) => {
     if (type === 'edit' && index !== null) {
       setCurrentBuildingIndex(index);
@@ -23,9 +23,15 @@ function BuildingList({ buildings, addBuilding, updateBuilding, deleteBuilding }
     setIsModalOpen(true);
   };
 
-  // Function to handle saving the building after editing or adding
+  // Function to handle saving the building after adding or editing
   const handleSaveBuilding = (inputs) => {
     const { 'Building Name': name, 'Area (optional)': area, 'Number of RAs': numberOfRAs } = inputs;
+
+    // Validate the inputs
+    if (!name) {
+      alert('Building Name is required.');
+      return;
+    }
 
     if (isNaN(Number(numberOfRAs))) {
       alert('Number of RAs must be a valid number.');
@@ -40,6 +46,12 @@ function BuildingList({ buildings, addBuilding, updateBuilding, deleteBuilding }
       updateBuilding(currentBuildingIndex, newBuilding);
     }
 
+    // Reset modal state after saving
+    resetModalState();
+  };
+
+  // Function to reset modal state
+  const resetModalState = () => {
     setIsModalOpen(false);
     setCurrentBuildingIndex(null);
     setModalInputs({});
@@ -51,11 +63,7 @@ function BuildingList({ buildings, addBuilding, updateBuilding, deleteBuilding }
       <button onClick={() => handleOpenModal('add')}>Add Building</button>
       {isModalOpen && (
         <Modal
-          onClose={() => {
-            setIsModalOpen(false);
-            setCurrentBuildingIndex(null);
-            setModalInputs({});
-          }}
+          onClose={resetModalState}
           onSave={handleSaveBuilding}
           fields={['Building Name', 'Area (optional)', 'Number of RAs']}
           initialValues={modalInputs}
